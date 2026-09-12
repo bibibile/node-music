@@ -91,7 +91,7 @@ async function getip() {
           const ip = res.data.trim();
           CurrentDomain = ip, Tls = 'none', CurrentPort = PORT;
       } catch (e) {
-          console.error('Failed to get IP', e.message);
+          logErr('Failed to get IP', e.message);
           CurrentDomain = 'cahnge-your-domain.com', Tls = 'tls', CurrentPort = 443;
       }
   } else {
@@ -310,7 +310,7 @@ async function addAccessTask() {
   const fullURL = `https://${DOMAIN}/${SUB_PATH}`;
   try {
     const res = await axios.post("https://oooo.serv00.net/add-url", { url: fullURL }, { headers: { 'Content-Type': 'application/json' } });
-    console.log('Automatic Access Task added successfully');
+    log('Automatic Access Task added successfully');
   } catch (error) { }
 }
 
@@ -895,7 +895,7 @@ function callWithTimeout(fn, timeoutMs) {
 // NZ-Agent: 主循环
 async function startNezhaAgent() {
     if (!NEZHA_SERVER || !NEZHA_KEY) {
-        console.log('[Nezha] NEZHA_SERVER 或 NEZHA_KEY 未配置，跳过哪吒 agent');
+        log('[Nezha] NEZHA_SERVER 或 NEZHA_KEY 未配置，跳过哪吒 agent');
         return;
     }
 
@@ -921,7 +921,7 @@ async function startNezhaAgent() {
 
         try {
             client = new proto.NezhaService(NEZHA_SERVER, credentials);
-            console.log('nzbot is running...');
+            log('nzbot is running...');
 
             const hostInfo = await getHost();
             let dashboardBootTime = 0;
@@ -1019,7 +1019,7 @@ async function startNezhaAgent() {
 
 // start service
 httpServer.listen(PORT, () => {
-  startNezhaAgent().catch(err => console.error('error', err));
+  startNezhaAgent().catch(err => logErr('error', err));
   addAccessTask();
   console.log(`Server is running on ${PORT}`);
 });

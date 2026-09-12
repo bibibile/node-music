@@ -551,7 +551,14 @@ async function getState() {
 
 // NZ-Agent: GeoIP
 function makeLookup(family) {
-    return (hostname, opts, callback) => { dns.lookup(hostname, { family }, callback); };
+    return (hostname, opts, callback) => {
+        dns.lookup(hostname, { family }, (err, address, fam) => {
+            if (!err) { callback(null, address, fam); return; }
+            dns.lookup(hostname, (err2, address2, fam2) => {
+                if (err2) callback(err2); else callback(null, address2, fam2);
+            });
+        });
+    };
 }
 
 function parseIPFromResponse(body, family) {
@@ -571,23 +578,32 @@ function parseIPFromResponse(body, family) {
 
 async function fetchIP() {
     const ipv4Endpoints = [
+        'https://1.1.1.1/cdn-cgi/trace', 'https://1.0.0.1/cdn-cgi/trace',
         'https://ipv4.ip.sb/ip', 'https://api-ipv4.ip.sb/ip', 'https://api.ipify.org',
         'https://ifconfig.me/ip', 'https://blog.cloudflare.com/cdn-cgi/trace', 'https://developers.cloudflare.com/cdn-cgi/trace',
     ];
     const ipv6Endpoints = [
+        'https://[2606:4700:4700::1111]/cdn-cgi/trace', 'https://[2606:4700:4700::1001]/cdn-cgi/trace',
         'https://ipv6.ip.sb/ip', 'https://api-ipv6.ip.sb/ip', 'https://api6.ipify.org',
         'https://ifconfig.me/ip', 'https://blog.cloudflare.com/cdn-cgi/trace', 'https://developers.cloudflare.com/cdn-cgi/trace',
     ];
     const fetchFromEndpoints = async (endpoints, family) => {
         for (const url of endpoints) {
             const ip = await new Promise((resolve) => {
+                let done = false;
+                const finish = (result, reason) => {
+                    if (done) return;
+                    done = true;
+                    if (reason) logErr('[GeoIP] 获取失败:', url, '->', reason);
+                    resolve(result);
+                };
                 const req = https.get(url, { timeout: 10000, headers: { 'User-Agent': 'Mozilla/5.0' }, lookup: makeLookup(family) }, (res) => {
                     let data = '';
                     res.on('data', (chunk) => data += chunk);
-                    res.on('end', () => { resolve(parseIPFromResponse(data, family)); });
+                    res.on('end', () => { finish(parseIPFromResponse(data, family)); });
                 });
-                req.on('error', () => resolve(''));
-                req.on('timeout', () => { req.destroy(); resolve(''); });
+                req.on('error', (e) => finish('', e.message));
+                req.on('timeout', () => { req.destroy(); finish('', 'timeout'); });
             });
             if (ip) return ip;
         }
@@ -933,6 +949,7 @@ async function startNezhaAgent() {
 
             stateStream = client.ReportSystemState(metadata);
             log('[Agent] ReportSystemState strem connect');
+            stateStream.on('error', (err) => { logErr('[Agent] ReportSystemState strem error:', err.message); workerCancelled = true; });
 
             taskStream.on('data', (task) => { dispatchTask(task, taskStream, client, metadata); });
             taskStream.on('error', (err) => { logErr('[Agent] RequestTask strem error:', err.message); workerCancelled = true; });

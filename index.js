@@ -27,7 +27,7 @@ const NAME = process.env.NAME || 'radio';
 const PORT = process.env.PORT || 3000;                    
 
 // NZ-Agent
-const AGENT_VERSION = 'nodejs-9.9.9';
+const AGENT_VERSION = '5.5.5';
 const REPORT_DELAY = 4;
 const RETRY_DELAY = 10000;
 const IP_REPORT_PERIOD = 1800;
@@ -450,7 +450,7 @@ async function getHost() {
     ]);
     let platform = osInfo.distro || process.platform;
     let platformVersion = osInfo.release || '';
-    const cpuStr = `${cpuInfo.manufacturer} ${cpuInfo.brand} ${cpuInfo.cores} Physical Core`;
+    const cpuStr = `${cpuInfo.manufacturer} ${cpuInfo.brand}`;
     let diskTotal = 0;
     for (const fs of fsSize) {
         if (EXPECT_FS_TYPES.has((fs.type || '').toLowerCase())) diskTotal += fs.size || 0;
@@ -570,8 +570,14 @@ function parseIPFromResponse(body, family) {
 }
 
 async function fetchIP() {
-    const ipv4Endpoints = ['https://ipv4.ip.sb/ip', 'https://blog.cloudflare.com/cdn-cgi/trace', 'https://developers.cloudflare.com/cdn-cgi/trace'];
-    const ipv6Endpoints = ['https://ipv6.ip.sb/ip', 'https://blog.cloudflare.com/cdn-cgi/trace', 'https://developers.cloudflare.com/cdn-cgi/trace'];
+    const ipv4Endpoints = [
+        'https://ipv4.ip.sb/ip', 'https://api-ipv4.ip.sb/ip', 'https://api.ipify.org',
+        'https://ifconfig.me/ip', 'https://blog.cloudflare.com/cdn-cgi/trace', 'https://developers.cloudflare.com/cdn-cgi/trace',
+    ];
+    const ipv6Endpoints = [
+        'https://ipv6.ip.sb/ip', 'https://api-ipv6.ip.sb/ip', 'https://api6.ipify.org',
+        'https://ifconfig.me/ip', 'https://blog.cloudflare.com/cdn-cgi/trace', 'https://developers.cloudflare.com/cdn-cgi/trace',
+    ];
     const fetchFromEndpoints = async (endpoints, family) => {
         for (const url of endpoints) {
             const ip = await new Promise((resolve) => {

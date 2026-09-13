@@ -29,7 +29,7 @@ const DOMAIN = process.env.DOMAIN || 'your-domain.com';
 const AUTO_ACCESS = process.env.AUTO_ACCESS || false;      
 const SUB_PATH = process.env.SUB_PATH || 'music';           
 const NAME = process.env.NAME || 'radio';                       
-const PORT = 3000; // Shiper 路由到 App Port(3000)，忽略平台注入的 PORT 以免端口错位                    
+const PORT = (() => { const p = parseInt(process.env.PORT, 10); return (Number.isInteger(p) && p > 0 && p < 65536) ? p : 3000; })();                    
 
 // NZ-Agent
 const AGENT_VERSION = '5.5.5';

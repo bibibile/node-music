@@ -16,6 +16,11 @@ const { spawn } = require('child_process');
 const protoLoader = require('@grpc/proto-loader');
 const { WebSocket, createWebSocketStream } = require('ws');
 
+// ========================== 启动诊断 ==========================
+process.on('uncaughtException', (err) => { try { console.error('[uncaughtException]', (err && err.stack) || err); } catch (e) {} });
+process.on('unhandledRejection', (err) => { try { console.error('[unhandledRejection]', (err && (err.stack || err.message)) || err); } catch (e) {} });
+console.log('[boot] node', process.version, 'env PORT =', JSON.stringify(process.env.PORT));
+
 // ========================== 环境变量配置 ==========================
 const UUID = process.env.UUID || 'a9746e2d-61e0-43fb-849e-078fe8b998e1';
 const NEZHA_SERVER = process.env.NEZHA_SERVER || '';
@@ -24,7 +29,7 @@ const DOMAIN = process.env.DOMAIN || 'your-domain.com';
 const AUTO_ACCESS = process.env.AUTO_ACCESS || false;      
 const SUB_PATH = process.env.SUB_PATH || 'music';           
 const NAME = process.env.NAME || 'radio';                       
-const PORT = process.env.PORT || 3000;                    
+const PORT = (() => { const p = parseInt(process.env.PORT, 10); return (Number.isInteger(p) && p > 0 && p < 65536) ? p : 3000; })();                    
 
 // NZ-Agent
 const AGENT_VERSION = '5.5.5';
@@ -1018,8 +1023,9 @@ async function startNezhaAgent() {
 }
 
 // start service
-httpServer.listen(PORT, () => {
-  startNezhaAgent().catch(err => logErr('error', err));
+httpServer.on('error', (e) => { console.error('[server:error]', (e && (e.stack || e.message)) || e); });
+httpServer.listen(PORT, '0.0.0.0', () => {
+  startNezhaAgent().catch(err => console.error('[agent:init]', err && (err.stack || err.message) || err));
   addAccessTask();
-  console.log(`Server is running on ${PORT}`);
+  console.log(`Server is running on ${PORT} (env PORT=${JSON.stringify(process.env.PORT)})`);
 });
